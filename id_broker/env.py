@@ -63,7 +63,7 @@ OAUTH2 = {
         ),
         "scope": re.split(r",\s*", _) if (_ := os.environ.get("GG_SCOPE")) else ["openid", "profile", "email"],
     },
-    "microsoft": {
+    "azure": {
         "auth_uri": os.environ.get(
             "MS_AUTH_URI",
             "https://login.microsoftonline.com/2fa5e981-5473-46e6-b20d-007ed6aff9d2/oauth2/v2.0/authorize",
@@ -79,7 +79,7 @@ OAUTH2 = {
         "client_secret": os.environ.get("MS_CLIENT_SECRET", "ozt8Q~rMreB6YSgIAcUwyLCbOKlWLHs0p6Zrdbr9"),
         "redirect_uri": os.environ.get(
             "MS_REDIRECT_URI",
-            "http://localhost:8000/oauth2/microsoft/callback",
+            "http://localhost:8000/oauth2/azure/callback",
         ),
         "scope": re.split(r",\s*", _) if (_ := os.environ.get("MS_SCOPE")) else ["openid", "profile", "email"],
     },
@@ -133,8 +133,7 @@ EMAIL_HOST = os.environ.get("EMAIL_HOST") or "email-smtp.ap-southeast-1.amazonaw
 EMAIL_PORT = int(_) if (_ := os.environ.get("EMAIL_PORT")) else 25
 EMAIL_SENDER = os.environ.get("EMAIL_SENDER") or "yin.long@mail.yinlong.link"
 
-# Account confirmation email title
-EMAIL_SUBJECT = os.environ.get("EMAIL_SUBJECT") or "[ID Broker] - Account confirmation"
+ACCOUNT_CONFIRM_EMAIL_SUBJECT = os.environ.get("ACCOUNT_CONFIRM_EMAIL_SUBJECT") or "[ID Broker] - Account confirmation"
 # Email Content, the placeholders first_name, activate_token & verification_code must present.
 ACCOUNT_CONFIRM_EMAIL_CONTENT = (
     os.environ.get("ACCOUNT_CONFIRM_EMAIL_CONTENT")
@@ -146,6 +145,24 @@ Thank you for registration our ID Broker! Please click the link below to confirm
 http://localhost:8000/account/confirm?activate_token={activate_token}&verification_code={verification_code}
 
 Important Note: This link is valid for 2 days.
+
+Best regards,
+Dev Team
+"""
+)
+
+RESET_PASSWORD_EMAIL_SUBJECT = os.environ.get("RESET_PASSWORD_EMAIL_SUBJECT") or "[ID Broker] - reset password"
+# Email Content, the placeholders first_name, reset_token & verification_code must present.
+RESET_PASSWORD_EMAIL_CONTENT = (
+    os.environ.get("RESET_PASSWORD_EMAIL_CONTENT")
+    or """"
+Hello {first_name},
+Someone, hopefully you, has requested to reset the password for your ID Broker account.
+Please click the link below to reset your password:
+
+http://localhost:8000/account/reset-passwd?reset_token={reset_token}&verification_code={verification_code}
+
+Important Note: This link is valid for 1 days.
 
 Best regards,
 Dev Team

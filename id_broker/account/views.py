@@ -1,9 +1,7 @@
 import json
 import logging
-import time
 import traceback
 
-import jwt
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -14,10 +12,18 @@ from django.http import HttpResponse, JsonResponse, QueryDict
 from django.http.request import HttpRequest
 from django.middleware.csrf import get_token
 from rest_framework import exceptions, mixins, permissions, status, viewsets
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from id_broker import helper
 from id_broker.account.models import UserDraft, UserProfile
-from id_broker.account.serializers import CreateIdentitySerializer, IdentitySerializer, RetrieveIdentitySerializer
+from id_broker.account.serializers import (
+    ChangePasswordSerializer,
+    CreateIdentitySerializer,
+    IdentitySerializer,
+    RetrieveIdentitySerializer,
+    UpdateUserSerializer,
+)
 
 
 class IDProfile(viewsets.GenericViewSet, mixins.ListModelMixin):
@@ -25,7 +31,7 @@ class IDProfile(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    def list(self, request, *args, **kwargs):
+    def list(self, request: Request, *args, **kwargs) -> Response:
         return Response(self.serializer_class(request.user, context=self.get_serializer_context()).data)
 
 
@@ -34,7 +40,7 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
     queryset = UserDraft.objects.all()
 
     @transaction.atomic
-    def create(self, request, *args, **kwargs):
+    def create(self, request: Request, *args, **kwargs) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -51,10 +57,11 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
         user_draft.username = validated_data["email"]
         user_draft.set_password(validated_data["password"])
 
-        verification_code = IDRegister.generate_verification_code()
-        activate_token = IDRegister.encode_activate_token(username=validated_data["email"])
+        verification_code = helper.generate_verification_code()
+        activate_token = helper.encode_activate_token(identifier=validated_data["email"])
 
         user_profile = UserProfile(
+            id_provider=helper.BUILTIN_USER_POOL,
             verification_code=verification_code,
             preferred_name="{first_name} {last_name}".format(**validated_data),
         )
@@ -67,28 +74,12 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
         headers = self.get_success_headers(serializer.data)
 
         try:
-            absolute_uri = request.build_absolute_uri(None)
-            self._send_conform_account_email(absolute_uri, activate_token, user_draft)
+            self._send_conform_account_email(activate_token, user_draft)
         except Exception:
             logging.error(traceback.format_exc())
-            return JsonResponse(
-                data={"message": f"Can not send email to {user_draft.email}."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            raise
 
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    @staticmethod
-    def generate_verification_code() -> str:
-        return str(int(time.time() * 1000000))
-
-    @staticmethod
-    def encode_activate_token(username: str) -> str:
-        return jwt.encode({"sub": username}, key=settings.SECRET_KEY, algorithm="HS256")
-
-    @staticmethod
-    def decode_activate_token(activate_token: str) -> str:
-        return jwt.decode(activate_token, key=settings.SECRET_KEY, algorithms="HS256")["sub"]
 
     @staticmethod
     def _send_conform_account_email(activate_token: str, user_draft: UserDraft):
@@ -98,7 +89,7 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
             verification_code=user_draft.user_profile.verification_code,
         )
         send_mail(
-            settings.EMAIL_SUBJECT,
+            settings.ACCOUNT_CONFIRM_EMAIL_SUBJECT,
             confirm_email_content,
             from_email=settings.EMAIL_SENDER,
             recipient_list=[user_draft.email],
@@ -106,8 +97,43 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
         )
 
 
+class UpdateUserViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
+    serializer_class = UpdateUserSerializer
+    queryset = User.objects.select_related("user_profile").all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        user: User = request.user
+        user.first_name = validated_data["first_name"]
+        user.last_name = validated_data["last_name"]
+        user.save()
+
+        return Response(validated_data)
+
+
+class ChangePasswordViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
+    serializer_class = ChangePasswordSerializer
+    queryset = User.objects.select_related("user_profile").all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        user: User = request.user
+        user.set_password(validated_data["new_password"])
+        user.save()
+
+        return Response()
+
+
 @transaction.atomic
-def activate_account(request: HttpRequest):
+def activate_account(request: HttpRequest) -> JsonResponse:
     if request.method == "GET":
         verification_code = request.GET.get("verification_code", "")
         activate_token = request.GET.get("activate_token", "")
@@ -121,7 +147,7 @@ def activate_account(request: HttpRequest):
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)
 
     try:
-        username = IDRegister.decode_activate_token(activate_token)
+        username = helper.decode_activate_token(activate_token)
     except Exception as e:
         logging.warning(str(e))
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)
@@ -133,7 +159,7 @@ def activate_account(request: HttpRequest):
         return JsonResponse({"message": "Invalid link."}, status=422)
 
     user_draft = qs[0]
-    _microseconds = int(IDRegister.generate_verification_code())
+    _microseconds = int(helper.generate_verification_code())
     if 60 * 60 * 25 * 2 * 1000000 < _microseconds - int(user_draft.user_profile.verification_code):
         return JsonResponse({"message": "Expired link."}, status=422)
 
@@ -158,7 +184,7 @@ def activate_account(request: HttpRequest):
 
 
 # Create your views here.
-def csrf_token(request):
+def csrf_token(request: HttpRequest) -> JsonResponse:
     csrftoken = get_token(request)
     res = JsonResponse({settings.CSRF_COOKIE_NAME: csrftoken})
     res.set_cookie(settings.CSRF_COOKIE_NAME, csrftoken)
@@ -166,7 +192,7 @@ def csrf_token(request):
 
 
 @transaction.atomic
-def password_login(request: HttpRequest):
+def password_login(request: HttpRequest) -> HttpResponse:
     try:
         if request.content_type == "application/json":
             serializer = IdentitySerializer(data=json.load(request))
@@ -194,3 +220,38 @@ def password_login(request: HttpRequest):
         backend="django.contrib.auth.backends.ModelBackend",
     )
     return HttpResponse()
+
+
+@transaction.atomic
+def forget_password(request: HttpRequest) -> JsonResponse:
+    identifier = request.POST.get("email")
+
+    try:
+        user = User.objects.get(username=identifier)
+    except User.DoesNotExist:
+        return JsonResponse({"email": ["Sorry, the system cannot recognize this email!"]}, status=400)
+
+    verification_code = helper.generate_verification_code()
+    reset_passwd_token = helper.encode_activate_token(identifier=identifier)
+    user.user_profile.verification_code = verification_code
+    user.user_profile.save()
+
+    reset_passwd_email_content = settings.RESET_PASSWORD_EMAIL_CONTENT.format(
+        first_name=user.first_name,
+        reset_token=reset_passwd_token,
+        verification_code=user.user_profile.verification_code,
+    )
+
+    try:
+        send_mail(
+            settings.RESET_PASSWORD_EMAIL_SUBJECT,
+            reset_passwd_email_content,
+            from_email=settings.EMAIL_SENDER,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logging.error(traceback.format_exc())
+        raise
+
+    return JsonResponse({"message": "OK"}, status=200)

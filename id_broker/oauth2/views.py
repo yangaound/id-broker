@@ -106,7 +106,7 @@ def _extract_open_info_from_id_token(id_token: str, id_provider_name: str) -> tu
         preferred_name = open_info["name"]
         verified = open_info["email_verified"]
 
-    elif id_provider_name == "microsoft":
+    elif id_provider_name == "azure":
         username = open_info["sub"]
         first_name = ""
         last_name = ""

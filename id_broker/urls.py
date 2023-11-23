@@ -24,9 +24,6 @@ router = routers.DefaultRouter()
 
 router.register(r"sign-up", account_views.IDRegister, basename="sign-up-account")
 router.register(r"profile", account_views.IDProfile, basename="user-profile")
-router.register(r"modify-passwd", account_views.IDRegister, basename="sign-up-account")
-router.register(r"forget-passwd", account_views.IDRegister, basename="sign-up-account")
-router.register(r"reset-passwd", account_views.IDRegister, basename="sign-up-account")
 
 
 # Wire up our API using automatic URL routing.
@@ -43,6 +40,9 @@ urlpatterns = [
     path(r"account/confirm", account_views.activate_account),
     path(r"account/csrf-token", account_views.csrf_token),
     path(r"account/passwd-login", account_views.password_login),
+    path(r"account/update-info", account_views.UpdateUserViews.as_view({"action": "update"})),
+    path(r"account/change-passwd", account_views.ChangePasswordViews.as_view({"action": "update"})),
+    path(r"account/forget-passwd", account_views.forget_password),
     path(r"account/", include("rest_framework.urls", namespace="account")),
     path(r"account/", include(router.urls)),
     path(r"admin/", admin.site.urls),
