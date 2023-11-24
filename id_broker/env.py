@@ -128,7 +128,7 @@ if os.environ.get("SESSION_COOKIE_SAMESITE"):
 
 
 # SMTP
-EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND") or "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND") or "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST") or "email-smtp.ap-southeast-1.amazonaws.com"
 EMAIL_PORT = int(_) if (_ := os.environ.get("EMAIL_PORT")) else 25
 EMAIL_SENDER = os.environ.get("EMAIL_SENDER") or "yin.long@mail.yinlong.link"
@@ -142,7 +142,7 @@ Dear {first_name},
 
 Thank you for registration our ID Broker! Please click the link below to confirm your account:
 
-http://localhost:8000/account/confirm?activate_token={activate_token}&verification_code={verification_code}
+http://localhost:8000/account/perform-confirmation/?activate_token={activate_token}&verification_code={verification_code}
 
 Important Note: This link is valid for 2 days.
 
@@ -160,7 +160,7 @@ Hello {first_name},
 Someone, hopefully you, has requested to reset the password for your ID Broker account.
 Please click the link below to reset your password:
 
-http://localhost:8000/account/reset-passwd?reset_token={reset_token}&verification_code={verification_code}
+http://localhost:8000/account/perform-password-reset/?reset_token={reset_token}&verification_code={verification_code}
 
 Important Note: This link is valid for 1 days.
 

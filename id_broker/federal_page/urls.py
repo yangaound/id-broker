@@ -20,6 +20,6 @@ from . import views
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path(r"signin-page", views.render_federal_signin_page),
-    path(r"signin-error-page", views.render_federal_oauth2_signin_error_page),
+    path(r"login-page", views.render_federal_signin_page),
+    path(r"login-error-page", views.render_federal_oauth2_signin_error_page),
 ]

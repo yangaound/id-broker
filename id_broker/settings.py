@@ -132,4 +132,5 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
 }
 
+
 from .env import *  # disable --remove-all-unused-imports

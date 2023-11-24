@@ -84,11 +84,7 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
             user.save()
             user_profile.save()
 
-        login(
-            request,
-            user,
-            backend="django.contrib.auth.backends.ModelBackend",
-        )
+        login(request, user)
     except Exception as e:
         return HttpResponseRedirect(f"/federal-web/signin-error-page?error={e}&stage=update")
 

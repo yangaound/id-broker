@@ -34,18 +34,19 @@ class IdentitySerializer(serializers.Serializer):
 
 
 class CreateIdentitySerializer(ReprMixin, IdentitySerializer):
-    first_name = serializers.CharField(required=False, allow_null=True)
-    last_name = serializers.CharField(required=False, allow_null=True)
+    first_name = serializers.CharField(required=False, allow_null=True, default="")
+    last_name = serializers.CharField(required=False, allow_null=True, default="")
 
 
-class UpdateUserSerializer(serializers.ModelSerializer):
+class UpdateUserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["first_name", "last_name"]
 
 
 class ChangePasswordSerializer(serializers.ModelSerializer):
-    new_password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=True, allow_blank=False, min_length=6)
+    new_password = serializers.CharField(write_only=True, required=True, allow_blank=False, min_length=6)
 
     class Meta:
         model = User
