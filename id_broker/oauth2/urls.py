@@ -13,15 +13,13 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import include, path
+from django.urls import re_path
+
+from . import views
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path(r"oauth2/", include("id_broker.oauth2.urls")),
-    path(r"security/", include("id_broker.security.urls")),
-    path(r"account/", include("id_broker.account.urls")),
-    path(r"account/", include("rest_framework.urls", namespace="account")),
-    path(r"admin/", admin.site.urls),
+    re_path(r"^(?P<id_provider>\w+)/auth$", views.oauth2_auth_rdr),
+    re_path(r"^(?P<id_provider>\w+)/callback$", views.oauth2_callback),
 ]

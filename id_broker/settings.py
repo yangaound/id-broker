@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "id_broker.oauth2",
     "id_broker.account",
-    "id_broker.federal_page",
+    "id_broker.security",
 ]
 
 MIDDLEWARE = [
