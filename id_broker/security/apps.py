@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class FederalPageConfig(AppConfig):
+class SecurityConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "id_broker.federal_page"
+    name = "id_broker.security"

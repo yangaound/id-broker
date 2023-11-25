@@ -44,15 +44,6 @@ class UpdateUserInfoSerializer(serializers.ModelSerializer):
         fields = ["first_name", "last_name"]
 
 
-class ChangePasswordSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, allow_blank=False, min_length=6)
-    new_password = serializers.CharField(write_only=True, required=True, allow_blank=False, min_length=6)
-
-    class Meta:
-        model = User
-        fields = ["password", "new_password"]
-
-
 class RetrieveIdentitySerializer(ReprMixin, serializers.Serializer):
     identity = serializers.CharField()
     email = serializers.EmailField()

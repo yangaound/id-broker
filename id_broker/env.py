@@ -27,8 +27,6 @@ STATIC_ROOT = os.environ.get("STATIC_ROOT") or "static/"
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 FORCE_SCRIPT_NAME = os.environ.get("FORCE_SCRIPT_NAME")
 
