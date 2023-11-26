@@ -7,6 +7,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseRedirect
 from requests_oauthlib import OAuth2Session
 
+from id_broker import helper
 from id_broker.account.models import UserProfile
 
 
@@ -31,7 +32,7 @@ def oauth2_auth_rdr(request, id_provider):
 def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedirect:
     id_provider_name = id_provider.lower()
     conf = settings.OAUTH2[id_provider_name]
-
+    base_path = helper.build_base_path(request)
     # Request access token
     try:
         oauth = OAuth2Session(conf["client_id"], redirect_uri=conf["redirect_uri"])
@@ -41,7 +42,7 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
             client_secret=conf["client_secret"],
         )
     except Exception as e:
-        return HttpResponseRedirect(f"/federal-web/signin-error-page?error={e}&stage=request")
+        return HttpResponseRedirect(f"{base_path}/oauth2-signin-error?error={e}&stage=request")
 
     # Extract id token
     try:
@@ -50,7 +51,7 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
             id_provider_name,
         )
     except Exception as e:
-        return HttpResponseRedirect(f"/federal-web/signin-error-page?error={e}&stage=extract")
+        return HttpResponseRedirect(f"{base_path}/oauth2-signin-error?error={e}&stage=extract")
 
     # Update info from id token
     try:
@@ -86,7 +87,7 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
 
         login(request, user)
     except Exception as e:
-        return HttpResponseRedirect(f"/federal-web/signin-error-page?error={e}&stage=update")
+        return HttpResponseRedirect(f"{base_path}/oauth2-signin-error?error={e}&stage=update")
 
     return HttpResponseRedirect(request.GET.get("state") or "/")
 

@@ -59,12 +59,29 @@
 </head>
 <body>
     <div class="container">
-        <div class="login-box">
-            <button><a href="{{ baseURL }}/account/login/">Sign In</a></button>
-        </div>
-        
+        <form
+            action="{{ baseURL }}/account/login/?next={{ baseURL }}/account/profile/"
+            method="post"
+            role="form"
+            id="login-form"
+            class="login-box">
+
+            {% csrf_token %}
+            <div class="form-row">
+                <input type="text" name="username" placeholder="Email">
+            </div>
+
+            <div class="form-row">
+                <input type="password" name="password" placeholder="Password">
+            </div>
+
+            <div class="submit-row">
+                <input type="submit" value="Sign in">
+            </div>
+        </form>
+
         <div class="login-options">
-            <button><a href="{{ baseURL }}/oauth2/azure/auth">Sign in with Toastmasters</a></button>
+            <button><a href="{{ baseURL }}/oauth2/azure/auth">Sign in with Azure</a></button>
             <button><a href="{{ baseURL }}/oauth2/google/auth">Sign in with Google</a></button>
             <button><a href="{{ baseURL }}/oauth2/line/auth">Sign in with Line</a></button>
         </div>

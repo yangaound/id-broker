@@ -9,7 +9,6 @@ from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse, QueryDict
-from django.http.request import HttpRequest
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import exceptions, mixins, permissions, status, viewsets
@@ -57,7 +56,7 @@ class IDRegister(viewsets.GenericViewSet, mixins.CreateModelMixin):
         user_draft.set_password(validated_data["password"])
 
         verification_code = helper.generate_verification_code()
-        activate_token = helper.encode_activate_token(identifier=validated_data["email"])
+        activate_token = helper.encode_jwt({"sub": validated_data["email"]})
 
         user_profile = UserProfile(
             id_provider=helper.BUILTIN_USER_POOL,
@@ -142,12 +141,12 @@ def client_password_login(request: HttpRequest) -> HttpResponse:
 
 
 def render_federal_signin_page(req: HttpRequest):
-    base_url = helper.build_base_url(req)
+    base_url = helper.build_base_path(req)
     return render(req, "federal_signin.html", context={"baseURL": base_url})
 
 
 def render_federal_oauth2_signin_error_page(req: HttpRequest):
-    base_url = helper.build_base_url(req)
+    base_url = helper.build_base_path(req)
     return render(req, "oauth2_signin_error.html", context={"baseURL": base_url})
 
 
@@ -167,7 +166,7 @@ def perform_account_confirmation(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)
 
     try:
-        username = helper.decode_activate_token(activate_token)
+        username = helper.decode_jwt(activate_token)["sub"]
     except Exception as e:
         logging.warning(str(e))
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)

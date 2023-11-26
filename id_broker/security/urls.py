@@ -20,6 +20,7 @@ from . import views
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
+    path(r"id-token/", views.issue_id_token),
     path(r"change-password/", views.ChangePasswordViews.as_view({"patch": "partial_update"})),
     path(r"csrf-token/", views.csrf_token),
     path(r"activate-password-reset/", views.activate_password_reset),

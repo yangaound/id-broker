@@ -1,18 +1,21 @@
+import json
 import logging
 import traceback
 
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.db import transaction
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, QueryDict
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.response import Response
 
 from id_broker import helper
+from id_broker.account.serializers import IdentitySerializer
 
 from .serializers import ChangePasswordSerializer
 
@@ -59,7 +62,7 @@ def activate_password_reset(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"email": ["Cannot recognize!"]}, status=400)
 
     verification_code = helper.generate_verification_code()
-    reset_passwd_token = helper.encode_activate_token(identifier=identifier)
+    reset_passwd_token = helper.encode_jwt({"sub": identifier})
     user.user_profile.verification_code = verification_code
     user.user_profile.save()
 
@@ -98,7 +101,7 @@ def perform_password_reset(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)
 
     try:
-        identifier = helper.decode_activate_token(reset_token)
+        identifier = helper.decode_jwt(reset_token)["sub"]
     except Exception as e:
         logging.warning(str(e))
         return JsonResponse({"message": "Unprocessable Entity."}, status=422)
@@ -118,3 +121,38 @@ def perform_password_reset(request: HttpRequest) -> JsonResponse:
     user.save()
 
     return JsonResponse({"message": f"Your password has been reset."}, status=200)
+
+
+@csrf_exempt
+def issue_id_token(request: HttpRequest) -> JsonResponse:
+    if request.method not in ("POST",):
+        return JsonResponse({"message": "Method Not Allowed."}, status=405)
+
+    try:
+        if request.content_type == "application/json":
+            data = json.load(request)
+        else:
+            data = QueryDict(request.POST.urlencode())
+
+        serializer = IdentitySerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+    except Exception as e:
+        logging.warning(str(e))
+        raise PermissionDenied
+
+    qs = User.objects.filter(username=validated_data["email"])
+    if not qs.exists():
+        raise PermissionDenied
+
+    user: User = qs[0]
+    if not user.check_password(validated_data["password"]):
+        raise PermissionDenied
+
+    id_token_payload = {
+        "sub": user.pk,
+        "scope": helper.BUILTIN_USER_POOL,
+    }
+    id_token = helper.encode_jwt(id_token_payload)
+
+    return JsonResponse({"id_token": id_token}, status=200)
