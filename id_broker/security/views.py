@@ -141,7 +141,7 @@ def issue_id_token(request: HttpRequest) -> JsonResponse:
         logging.warning(str(e))
         raise PermissionDenied
 
-    qs = User.objects.filter(username=validated_data["email"])
+    qs = User.objects.select_related("user_profile").filter(username=validated_data["email"])
     if not qs.exists():
         raise PermissionDenied
 
@@ -149,10 +149,6 @@ def issue_id_token(request: HttpRequest) -> JsonResponse:
     if not user.check_password(validated_data["password"]):
         raise PermissionDenied
 
-    id_token_payload = {
-        "sub": user.pk,
-        "scope": helper.BUILTIN_USER_POOL,
-    }
-    id_token = helper.encode_jwt(id_token_payload)
+    id_token = helper.generate_id_token(user)
 
     return JsonResponse({"id_token": id_token}, status=200)
