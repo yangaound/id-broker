@@ -12,18 +12,6 @@ DEBUG = bool(os.environ.get("DEBUG", ""))
 ALLOWED_HOSTS = re.split(r",\s*", _) if (_ := os.environ.get("ALLOWED_HOSTS")) else ["*"]
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": os.getenv("DB_ENGINE") or "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME") or "identity",
-        "USER": os.getenv("DB_USER") or "idadm",
-        "PASSWORD": os.getenv("DB_PASSWORD") or "id+123",
-        "HOST": os.getenv("DB_HOST") or "127.0.0.1",
-        "PORT": os.getenv("DB_PORT") or "5432",
-    }
-}
-
-
 STATIC_ROOT = os.environ.get("STATIC_ROOT") or "static/"
 
 # Default primary key field type

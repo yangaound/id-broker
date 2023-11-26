@@ -28,7 +28,7 @@ such as `Google`, `Microsoft`, and `Line`.
   <summary> Account Sign-Up </summary>
 
   ```bash
-  BaseURL=http://localhost:8000
+  BaseURL=https://id-broker.azurewebsites.net
   
   curl -sX POST "${BaseURL}/accounts/sign-up" \
   -H "Content-Type: application/json" \
