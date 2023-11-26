@@ -1,6 +1,6 @@
 # Identity Broker 
 
-Identity and Group Management service that supports Single Sign On through OAuth2 ID providers,
+Identity and Group Management project that supports Single Sign On through OAuth2 ID providers,
 such as `Google`, `Microsoft`, and `Line`.
 
 ---
@@ -42,17 +42,6 @@ such as `Google`, `Microsoft`, and `Line`.
 
   ```text
   ${BaseURL}/account/perform-confirmation/?activate_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700795753989973
-  ```
-</details>
-
-
-<details><summary> Builtin-User ID Token: Issue JWT</summary>
-
-  ```bash
-    curl -sX POST "${BaseURL}/security/id-token/" \
-    -H "Content-Type: application/json" \
-    -d '{"email": "fofx@outlook.com", "password": "abc+123"}' \
-    -w '%{http_code}\n' | jq
   ```
 </details>
 
@@ -170,6 +159,16 @@ such as `Google`, `Microsoft`, and `Line`.
   ```
 </details>
 
+
+<details><summary> Builtin-User ID Token: Issue JWT</summary>
+
+  ```bash
+    curl -sX POST "${BaseURL}/security/id-token/" \
+    -H "Content-Type: application/json" \
+    -d '{"email": "fofx@outlook.com", "password": "abc+123"}' \
+    -w '%{http_code}\n' | jq
+  ```
+</details>
 
 
 <details><summary> Change Password </summary>
