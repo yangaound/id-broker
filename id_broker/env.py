@@ -4,8 +4,10 @@ import re
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("SECRET_KEY") or "django-insecure-a+lqh%d(^o9srdd8zsn9kqgvw6#mpw08a74vi3ek&jnx-$(!tr"
 
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(_) if (_ := os.environ.get("DEBUG", "")) else True
+DEBUG = bool(os.environ.get("DEBUG", ""))
+
 
 ALLOWED_HOSTS = re.split(r",\s*", _) if (_ := os.environ.get("ALLOWED_HOSTS")) else ["*"]
 
@@ -14,10 +16,10 @@ DATABASES = {
     "default": {
         "ENGINE": os.getenv("DB_ENGINE") or "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME") or "identity",
-        "USER": os.getenv("USER_NAME") or "idadm",
-        "PASSWORD": os.getenv("PASSWORD") or "id+123",
-        "HOST": os.getenv("HOST_NAME") or "127.0.0.1",
-        "PORT": os.getenv("PORT") or "5432",
+        "USER": os.getenv("DB_USER") or "idadm",
+        "PASSWORD": os.getenv("DB_PASSWORD") or "id+123",
+        "HOST": os.getenv("DB_HOST") or "127.0.0.1",
+        "PORT": os.getenv("DB_PORT") or "5432",
     }
 }
 
@@ -113,9 +115,11 @@ if os.environ.get("CSRF_COOKIE_SAMESITE", "").lower() == "none":
     CSRF_COOKIE_HTTPONLY = False
 
 CORS_ALLOW_CREDENTIALS = bool(os.environ.get("CORS_ALLOW_CREDENTIALS", ""))
-CORS_ORIGIN_WHITELIST = (
+CSRF_TRUSTED_ORIGINS = (
     re.split(r",\s*", _) if (_ := os.environ.get("CSRF_TRUSTED_ORIGINS")) else ["http://localhost:8000"]
 )
+CORS_ORIGIN_WHITELIST = CSRF_TRUSTED_ORIGINS
+
 
 # Session cookie
 SESSION_COOKIE_AGE = int(_) if (_ := os.environ.get("SESSION_COOKIE_AGE")) else 60 * 60

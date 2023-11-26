@@ -15,10 +15,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from .account import views
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
+
+router = DefaultRouter()
+
+router.register(r"account/sign-up", views.IDRegister, basename="sign-up-account")
+router.register(r"account/profile", views.IDProfile, basename="user-profile")
+
 urlpatterns = [
+    path(r"", include(router.urls)),
     path(r"oauth2/", include("id_broker.oauth2.urls")),
     path(r"security/", include("id_broker.security.urls")),
     path(r"account/", include("id_broker.account.urls")),
