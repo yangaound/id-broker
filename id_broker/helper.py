@@ -1,6 +1,5 @@
 import re
 import time
-from urllib.parse import urlsplit
 
 import jwt
 from django.conf import settings
@@ -14,15 +13,13 @@ def generate_verification_code() -> str:
     return str(int(time.time() * 1000000))
 
 
-def encode_activate_token(identifier: str) -> str:
-    return jwt.encode({"sub": identifier}, key=settings.SECRET_KEY, algorithm="HS256")
+def encode_jwt(payload: dict) -> jwt:
+    return jwt.encode(payload, key=settings.SECRET_KEY, algorithm="HS512")
 
 
-def decode_activate_token(activate_token: str) -> str:
-    return jwt.decode(activate_token, key=settings.SECRET_KEY, algorithms="HS256")["sub"]
+def decode_jwt(activate_token: str) -> dict:
+    return jwt.decode(activate_token, key=settings.SECRET_KEY, algorithms="HS512")
 
 
-def build_base_url(request: HttpRequest) -> str:
-    uri = request.build_absolute_uri()
-    url_parser = urlsplit(uri)
-    return f"{url_parser.scheme}://{url_parser.netloc}{settings.FORCE_SCRIPT_NAME or ''}"
+def build_base_path(request: HttpRequest) -> str:
+    return f"{settings.FORCE_SCRIPT_NAME or ''}"

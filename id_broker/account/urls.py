@@ -13,7 +13,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import include, path
+from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
 from . import views
@@ -32,6 +32,6 @@ urlpatterns = [
     path(r"client-password-login/", views.client_password_login),
     path(r"update-user-info/", views.UpdateUserInfoViews.as_view({"patch": "partial_update"})),
     # Web page
-    path(r"login-page", views.render_federal_signin_page),
-    path(r"login-error-page", views.render_federal_oauth2_signin_error_page),
+    re_path(r"^federal-signin$", views.render_federal_signin_page),
+    re_path(r"^oauth2-signin-error$", views.render_federal_oauth2_signin_error_page),
 ]

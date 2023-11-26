@@ -40,15 +40,26 @@ such as `Google`, `Microsoft`, and `Line`.
 <details>
   <summary> Account Confirmation (Email Activation Link) </summary>
 
-  ```shell
-  curl "${BaseURL}/account/perform-confirmation/?activate_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700795753989973"
+  ```text
+  ${BaseURL}/account/perform-confirmation/?activate_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700795753989973
   ```
 </details>
 
 
-<details><summary> Builtin-User Login: Set session cookies </summary>
+<details><summary> Builtin-User ID Token: Issue JWT</summary>
+
+  ```bash
+    curl -sX POST "${BaseURL}/security/id-token/" \
+    -H "Content-Type: application/json" \
+    -d '{"email": "fofx@outlook.com", "password": "abc+123"}' \
+    -w '%{http_code}\n' | jq
+  ```
+</details>
+
+
+<details><summary> Federal Login: Set session cookies </summary>
     
-    Navigate to the login page "${BaseURL}/account/login/"
+    Navigate to "${BaseURL}/account/federal-signin"
 </details>
 
 
