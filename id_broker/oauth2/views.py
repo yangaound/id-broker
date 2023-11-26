@@ -33,6 +33,7 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
     id_provider_name = id_provider.lower()
     conf = settings.OAUTH2[id_provider_name]
     base_path = helper.build_base_path(request)
+    id_token = ""
     # Request access token
     try:
         oauth = OAuth2Session(conf["client_id"], redirect_uri=conf["redirect_uri"])
@@ -86,10 +87,15 @@ def oauth2_callback(request: HttpRequest, id_provider: str) -> HttpResponseRedir
             user_profile.save()
 
         login(request, user)
+        id_token = helper.generate_id_token(user)
     except Exception as e:
         return HttpResponseRedirect(f"{base_path}/oauth2-signin-error?error={e}&stage=update")
 
-    return HttpResponseRedirect(request.GET.get("state") or "/")
+    next_page = helper.add_query_params_into_url(
+        original_url=request.GET.get("state", "/"),
+        new_params={"id_token": id_token},
+    )
+    return HttpResponseRedirect(next_page)
 
 
 def _extract_open_info_from_id_token(id_token: str, id_provider_name: str) -> tuple:
