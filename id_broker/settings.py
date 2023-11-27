@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "id_broker.oauth2",
     "id_broker.account",
     "id_broker.security",
+    "drf_yasg",
 ]
 
 MIDDLEWARE = [

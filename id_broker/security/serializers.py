@@ -9,3 +9,17 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["password", "new_password"]
+
+
+class ActivatePasswordResetSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ["email"]
+
+
+class PerformPasswordResetSerializer(serializers.Serializer):
+    verification_code = serializers.CharField()
+    reset_token = serializers.CharField()
+    new_password = serializers.CharField(max_length=50, min_length=6)

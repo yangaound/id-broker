@@ -14,15 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 from . import views
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path(r"id-token/", views.issue_id_token),
-    path(r"change-password/", views.ChangePasswordViews.as_view({"patch": "partial_update"})),
-    path(r"csrf-token/", views.csrf_token),
-    path(r"activate-password-reset/", views.activate_password_reset),
-    path(r"perform-password-reset/", views.perform_password_reset),
+    path(r"csrf-token", views.RetrieveCsrfTokenViews.as_view({"get": "retrieve"})),
+    path(r"id-token", csrf_exempt(views.RequestIDTokenViews.as_view({"post": "create"}))),
+    path(r"change-password", views.ChangePasswordViews.as_view({"patch": "partial_update"})),
+    path(
+        r"activate-password-reset", csrf_exempt(views.ActivatePasswordResetViews.as_view({"patch": "partial_update"}))
+    ),
+    path(r"perform-password-reset", csrf_exempt(views.PerformPasswordResetViews.as_view({"patch": "partial_update"}))),
 ]
