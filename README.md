@@ -13,8 +13,8 @@ such as `Google`, `Microsoft`, and `Line`.
 | Name                | Value                                               | Remarks     |
 |---------------------|-----------------------------------------------------|-------------|
 | SECRET_KEY          | 8e8ae6a8b8?v=8f48d2b873d84173bcea58db3f2f5418&pvs=4 |             |
-| LOGOUT_REDIRECT_URL | https://adp.yinlong.link/account/login/             | 登出後的頁面  |
-| LOGIN_REDIRECT_URL  | https://adp.yinlong.link/account/profile/           | 登入後的頁面  |
+| LOGOUT_REDIRECT_URL | https://adp.yinlong.link/accounts/login             | 登出後的頁面  |
+| LOGIN_REDIRECT_URL  | https://adp.yinlong.link/accounts/profile           | 登入後的頁面  |
 
 
  See: `id_broker/env.py`
@@ -30,7 +30,7 @@ such as `Google`, `Microsoft`, and `Line`.
   ```bash
   BaseURL=http://localhost:8000
   
-  curl -sX POST "${BaseURL}/account/sign-up/" \
+  curl -sX POST "${BaseURL}/accounts/sign-up" \
   -H "Content-Type: application/json" \
   -d '{"email": "fofx@outlook.com", "password": "abc+123", "first_name": "Y"}' \
   -w '%{http_code}\n' | jq
@@ -42,14 +42,14 @@ such as `Google`, `Microsoft`, and `Line`.
   <summary> Account Confirmation (Email Activation Link) </summary>
 
   ```text
-  ${BaseURL}/account/perform-confirmation/?activate_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700795753989973
+  ${BaseURL}/accounts/perform-confirmation?activate_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700795753989973
   ```
 </details>
 
 
 <details><summary> Federal Login: Set session cookies </summary>
     
-    Navigate to "${BaseURL}/account/federal-signin"
+    Navigate to "${BaseURL}/accounts/federal-signin"
 </details>
 
 
@@ -61,13 +61,13 @@ such as `Google`, `Microsoft`, and `Line`.
     It's then sent back to the server on subsequent requests to verify that the request is legitimate.
 
     ```bash
-    CSRFToken=$(curl -s "${BaseURL}/security/csrf-token/" | jq -r .csrftoken)
+    CSRFToken=$(curl -s "${BaseURL}/security/csrf-token" | jq -r .csrftoken)
     echo "Retrieved: $CSRFToken"
     ```
         
 2. Login Request with the CSRF Token 
     ```bash
-    curl -sX POST "${BaseURL}/account/client-password-login/" \
+    curl -sX PATCH "${BaseURL}/accounts/client-password-login" \
     -H "Content-Type: application/json" \
     -H "X-CSRFTOKEN: $CSRFToken" \
     -b "csrftoken=$CSRFToken" \
@@ -100,9 +100,9 @@ such as `Google`, `Microsoft`, and `Line`.
                 The CSRF token is set by the backend server in a cookie when the user first visits the server.
                 It's then sent back to the server on subsequent requests to verify that the request is legitimate.
                 */
-                const csrfToken = (await axios.get('/account/csrf-token/', axiosConfig)).data.csrftoken;
+                const csrfToken = (await axios.get('/accounts/csrf-token', axiosConfig)).data.csrftoken;
                 // replace with your login endpoint
-                const response = await axios.post('/account/client-password-login/', payload, Object.assign({headers: {'X-CSRFTOKEN': csrfToken}}, axiosConfig));
+                const response = await axios.post('/accounts/client-password-login', payload, Object.assign({headers: {'X-CSRFTOKEN': csrfToken}}, axiosConfig));
                 console.log('Login successful!');
                 // TODO: redirect the user to the order's dashboard
             } catch (error) {
@@ -117,7 +117,7 @@ such as `Google`, `Microsoft`, and `Line`.
 
 <details><summary> Logout: Clears the session cookie</summary>
   
-    Navigate to "${BaseURL}/account/logout/"
+    Navigate to "${BaseURL}/accounts/logout"
 </details>
 
 
@@ -125,7 +125,7 @@ such as `Google`, `Microsoft`, and `Line`.
   <summary> Retrieve Current User Profile </summary>
 
   ```bash
-  curl -s "${BaseURL}/account/profile/" \
+  curl -s "${BaseURL}/accounts/profile" \
   -w "%{http_code}\n" \
   -b idb-http.cookie | jq
   ```
@@ -140,11 +140,11 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Modify Personal Info </summary>
 
   ```bash
-  curl -skX PATCH "${BaseURL}/account/update-user-info/" \
+  curl -skX PATCH "${BaseURL}/accounts/update-user-info" \
   -H "Content-Type: application/json" \
   -H "X-CSRFTOKEN: $CSRFToken" \
   -b "csrftoken=$CSRFToken" \
-  -d '{"first_name": "Y", "last_name": "YY"}' \
+  -d '{"first_name": "Y", "last_name": ""}' \
   -w '%{http_code}\n' -b idb-http.cookie | jq
   ```
 </details>
@@ -156,7 +156,7 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Retrieve CSRF Token </summary>
   
   ```bash
-  curl -s "${BaseURL}/security/csrf-token/" | jq
+  curl -s "${BaseURL}/security/csrf-token" | jq
   ```
 </details>
 
@@ -164,7 +164,7 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Builtin-User ID Token: Issue JWT</summary>
 
   ```bash
-    curl -sX POST "${BaseURL}/security/id-token/" \
+    curl -sX POST "${BaseURL}/security/id-token" \
     -H "Content-Type: application/json" \
     -d '{"email": "fofx@outlook.com", "password": "abc+123"}' \
     -w '%{http_code}\n' | jq
@@ -175,14 +175,21 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Change Password </summary>
 
   ```bash
-  curl -skX PATCH "${BaseURL}/security/change-password/" \
+  curl -skX PATCH "${BaseURL}/security/change-password" \
   -H "Content-Type: application/json" \
   -H "X-CSRFTOKEN: $CSRFToken" \
   -b "csrftoken=$CSRFToken" \
   -d '{"password": "abc+123", "new_password": "abc+123"}' \
   -w '%{http_code}\n' -b idb-http.cookie -c idb-http.cookie | jq
   
-  CSRFToken=$(curl -s "${BaseURL}/security/csrf-token/" | jq -r .csrftoken)
+  CSRFToken=$(curl -s "${BaseURL}/security/csrf-token" | jq -r .csrftoken) # refresh cookies
+  curl -sX PATCH "${BaseURL}/accounts/client-password-login" \
+  -H "Content-Type: application/json" \
+  -H "X-CSRFTOKEN: $CSRFToken" \
+  -b "csrftoken=$CSRFToken" \
+  -d '{"email": "fofx@outlook.com", "password": "abc+123"}' \
+  -w 'http_code=%{http_code}\n' \
+  -c idb-http.cookie
   ```
 </details>
 
@@ -190,7 +197,7 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Forget-password </summary>
 
   ```bash
-  curl -sX POST ${BaseURL}/security/activate-password-reset/ \
+  curl -sX PATCH ${BaseURL}/security/activate-password-reset \
   -d "email=fofx@outlook.com"  \
   -w '%{http_code}\n' | jq
   ```
@@ -201,15 +208,15 @@ such as `Google`, `Microsoft`, and `Line`.
 
 - Click link on the received email (for debugging purposes) 
   ```text
-  ${BaseURL}/security/perform-reset-password/?reset_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700796813320016&new_password=abc%2B123
+  ${BaseURL}/security/perform-reset-password?reset_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo&verification_code=1700796813320016&new_password=abc%2B123
   ```
     
-- cURL POST request 
+- cURL POST request with email content
   ```bash
-  curl -sX POST "${BaseURL}/security/perform-password-reset/" \
-  -d reset_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmb2Z4QG91dGxvb2suY29tIn0.BsrV7qMLGk41ZDdoYzSIPnXMjxidWNhvqP-U2bPRjBo \
-  -d verification_code=1700856614827042 \
+  curl -sX PATCH "${BaseURL}/security/perform-password-reset" \
   -d new_password=abc%2B123 \
+  -d reset_token=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjF9._18Qhg9VDK9zmQUmwOGXAv0P5_EIRzSMpKH-EedoxLyKMs61lqhFcmlRxRDiJRjP-MVUK2z4hz_6O1Ct1TuXDw \
+  -d verification_code=1701081540497380 \
   -w '%{http_code}\n' | jq
   ```
 </details>

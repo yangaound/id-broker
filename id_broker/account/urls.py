@@ -20,9 +20,11 @@ from . import views
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path(r"perform-confirmation/", views.perform_account_confirmation),
-    path(r"client-password-login/", views.client_password_login),
-    path(r"update-user-info/", views.UpdateUserInfoViews.as_view({"patch": "partial_update"})),
+    path(r"sign-up", views.IDRegister.as_view({"post": "create"})),
+    path(r"profile", views.IDProfile.as_view({"get": "retrieve"})),
+    path(r"perform-confirmation", views.PerformAccountConfirmationViews.as_view({"get": "retrieve"})),
+    path(r"client-password-login", views.ClientPasswordLogin.as_view({"patch": "partial_update"})),
+    path(r"update-user-info", views.UpdateUserInfoViews.as_view({"patch": "partial_update"})),
     # Web page
     re_path(r"^federal-signin$", views.render_federal_signin_page),
     re_path(r"^oauth2-signin-error$", views.render_federal_oauth2_signin_error_page),

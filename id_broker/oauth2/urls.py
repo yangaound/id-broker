@@ -21,6 +21,6 @@ from . import views
 supported_id_providers = r"^(?P<id_provider>(%s))" % "|".join(settings.OAUTH2.keys())
 
 urlpatterns = [
-    re_path(f"{supported_id_providers}/auth$", views.oauth2_auth_rdr),
-    re_path(f"{supported_id_providers}/callback$", views.oauth2_callback),
+    re_path(f"{supported_id_providers}/auth$", views.Oauth2Authentication.as_view({"get": "retrieve"})),
+    re_path(f"{supported_id_providers}/callback$", views.Oauth2Callback.as_view({"get": "retrieve"})),
 ]

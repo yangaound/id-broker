@@ -15,23 +15,32 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from rest_framework.routers import DefaultRouter
-
-from .account import views
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 
-router = DefaultRouter()
+schema_view = get_schema_view(
+    openapi.Info(
+        title="ID Broker",
+        default_version="v1",
+        description="""Identity and Group Management Service that supports SSO through OAuth2 idP, such as 
+                    `Google`, `Microsoft`, and `Line`.""",
+        contact=openapi.Contact(email="fofx@outlook.com"),
+        license=openapi.License(name="MIT License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
-router.register(r"account/sign-up", views.IDRegister, basename="sign-up-account")
-router.register(r"account/profile", views.IDProfile, basename="user-profile")
 
 urlpatterns = [
-    path(r"", include(router.urls)),
     path(r"oauth2/", include("id_broker.oauth2.urls")),
     path(r"security/", include("id_broker.security.urls")),
-    path(r"account/", include("id_broker.account.urls")),
-    path(r"account/", include("rest_framework.urls", namespace="account")),
+    path(r"accounts/", include("id_broker.account.urls")),
+    path(r"accounts/", include("rest_framework.urls", namespace="account")),
     path(r"admin/", admin.site.urls),
+    path(r"", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
 ]

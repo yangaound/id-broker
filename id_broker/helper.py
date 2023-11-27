@@ -1,12 +1,14 @@
 import datetime
 import re
 import time
+from typing import Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import jwt
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.http.request import HttpRequest
+from rest_framework.request import Request
 
 BUILTIN_USER_POOL = "builtin-user-pool"
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
@@ -23,7 +25,7 @@ def generate_id_token(user: User) -> str:
         "sub": user.pk,
         "id_provider_name": user.user_profile.id_provider,
         "iat": utcnow,
-        "exp": utcnow + datetime.timedelta(seconds=60 * 60 * 1),
+        "exp": utcnow + datetime.timedelta(seconds=60 * 60 * 4),
     }
 
     return encode_jwt(id_token_payload)
@@ -37,7 +39,7 @@ def decode_jwt(activate_token: str) -> dict:
     return jwt.decode(activate_token, key=settings.SECRET_KEY, algorithms="HS512")
 
 
-def build_base_path(request: HttpRequest) -> str:
+def build_base_path(_: Union[HttpRequest, Request]) -> str:
     return f"{settings.FORCE_SCRIPT_NAME or ''}"
 
 

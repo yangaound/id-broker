@@ -35,11 +35,11 @@ FORCE_SCRIPT_NAME = os.environ.get("FORCE_SCRIPT_NAME")
 
 LOGIN_REDIRECT_URL = os.environ.get(
     "LOGIN_REDIRECT_URL",
-    "http://localhost:8000/account/profile",
+    "http://localhost:8000/accounts/profile",
 )
 LOGOUT_REDIRECT_URL = os.environ.get(
     "LOGOUT_REDIRECT_URL",
-    "http://localhost:8000/account/login",
+    "http://localhost:8000/accounts/login",
 )
 
 OAUTH2 = {
@@ -94,11 +94,11 @@ OAUTH2 = {
         ),
         "client_id": os.environ.get(
             "LN_CLIENT_ID",
-            "2001796866",
+            "2001887430",
         ),
         "client_secret": os.environ.get(
             "LN_CLIENT_SECRET",
-            "82545c2b51b50f1b6c46464ed459945d",
+            "b73c39b61bd9b5441451c2738878a097",
         ),
         "redirect_uri": os.environ.get(
             "LN_REDIRECT_URI",
@@ -144,7 +144,7 @@ Dear {first_name},
 
 Thank you for registration our ID Broker! Please click the link below to confirm your account:
 
-http://localhost:8000/account/perform-confirmation/?activate_token={activate_token}&verification_code={verification_code}
+http://localhost:8000/accounts/perform-confirmation?activate_token={activate_token}&verification_code={verification_code}&next=/accounts/login
 
 Important Note: This link is valid for 2 days.
 
@@ -162,7 +162,7 @@ Hello {first_name},
 Someone, hopefully you, has requested to reset the password for your ID Broker account.
 Please click the link below to reset your password:
 
-http://localhost:8000/account/perform-password-reset/?reset_token={reset_token}&verification_code={verification_code}
+http://localhost:8000/security/perform-password-reset?reset_token={reset_token}&verification_code={verification_code}
 
 Important Note: This link is valid for 1 days.
 
