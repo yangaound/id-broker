@@ -144,7 +144,7 @@ Dear {first_name},
 
 Thank you for registration our ID Broker! Please click the link below to confirm your account:
 
-http://localhost:8000/accounts/perform-confirmation?activate_token={activate_token}&verification_code={verification_code}&next=/accounts/login
+http://localhost:8000/accounts/perform-confirmation?activate_token={activate_token}&verification_code={verification_code}&next=/accounts/federal-signin&error_page=/accounts/oauth2-signin-error
 
 Important Note: This link is valid for 2 days.
 
@@ -170,3 +170,6 @@ Best regards,
 Dev Team
 """
 )
+
+
+ID_TOKEN_VALIDITY = os.environ.get("ID_TOKEN_VALIDITY") or 60 * 60 * 8

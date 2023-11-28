@@ -3,10 +3,11 @@ import traceback
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.middleware.csrf import get_token
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -90,15 +91,13 @@ class ActivatePasswordResetViews(GenericViewSet, UpdateModelMixin):
         except User.DoesNotExist:
             raise ValidationError({"email": ["Cannot recognize!"]})
 
-        verification_code = helper.generate_verification_code()
-        reset_passwd_token = helper.encode_jwt({"sub": user.pk})
-        user.user_profile.verification_code = verification_code
-        user.user_profile.save()
+        reset_passwd_token = default_token_generator.make_token(user)
+        verification_code = helper.pk_to_base36(user.pk)
 
         reset_passwd_email_content = settings.RESET_PASSWORD_EMAIL_CONTENT.format(
             first_name=user.first_name,
             reset_token=reset_passwd_token,
-            verification_code=user.user_profile.verification_code,
+            verification_code=verification_code,
         )
 
         try:
@@ -131,17 +130,21 @@ class PerformPasswordResetViews(GenericViewSet, UpdateModelMixin):
         new_password = validated_data["new_password"]
 
         try:
-            user_pk = helper.decode_jwt(reset_token)["sub"]
-            user: User = User.objects.select_related("user_profile").get(
-                pk=user_pk, user_profile__verification_code=verification_code
-            )
-        except Exception as e:
-            logging.warning(str(e))
-            raise AuthenticationFailed
+            user_pk = helper.base36_to_pk(verification_code)
+        except ValueError:
+            raise ValueError("Invalid activate_token or verification_code")
 
-        _microseconds = int(helper.generate_verification_code())
-        if 60 * 60 * 25 * 1 * 1000000 < _microseconds - int(verification_code):
-            raise PermissionDenied("Expired.")
+        if not 0 < user_pk < helper.MAX_PK_NUMBER:
+            raise ValueError("Invalid activate_token or verification_code")
+
+        try:
+            user: User = User.objects.select_related("user_profile").get(pk=user_pk)
+        except User.DoesNotExist:
+            logging.warning(f"Received invalid profile id `{verification_code}` encoded from user_id `{user_pk}`")
+            raise AuthenticationFailed("Invalid reset_token or verification_code")
+
+        if not default_token_generator.check_token(user, reset_token):
+            raise AuthenticationFailed("Used or expired token")
 
         user.set_password(new_password)
         user.save()

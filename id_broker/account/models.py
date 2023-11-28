@@ -10,7 +10,6 @@ class UserProfile(models.Model):
     )
     id_provider = models.CharField(max_length=50)
     preferred_name = models.CharField(max_length=50)
-    verification_code = models.CharField(max_length=20, null=True)
     created_time = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_time = models.DateTimeField(auto_now=True, null=True, blank=True)
 

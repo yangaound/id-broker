@@ -4,6 +4,7 @@ import traceback
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
@@ -14,7 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
-from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
+from rest_framework.status import HTTP_200_OK
 from rest_framework.viewsets import GenericViewSet
 
 from id_broker import helper
@@ -58,12 +59,8 @@ class IDRegister(GenericViewSet, CreateModelMixin):
         user_draft.set_password(validated_data["password"])
         user_draft.save()
 
-        verification_code = helper.generate_verification_code()
-        activate_token = helper.encode_jwt({"sub": user_draft.pk})
-
         user_profile = UserProfile(
             id_provider=helper.BUILTIN_USER_POOL,
-            verification_code=verification_code,
             preferred_name="{first_name} {last_name}".format(**validated_data),
         )
         user_draft.user_profile = user_profile
@@ -71,23 +68,26 @@ class IDRegister(GenericViewSet, CreateModelMixin):
         user_profile.save()
         user_draft.save()
 
-        serializer = self.get_serializer(user_draft)
-        headers = self.get_success_headers(serializer.data)
+        activate_token = default_token_generator.make_token(user_draft)
+        verification_code = helper.pk_to_base36(user_draft.pk)
 
         try:
-            self._send_conform_account_email(activate_token, user_draft)
+            self._send_conform_account_email(activate_token, verification_code, user_draft)
         except Exception:
             logging.error(traceback.format_exc())
             raise
 
+        serializer = self.get_serializer(user_draft)
+        headers = self.get_success_headers(serializer.data)
+
         return Response(serializer.data, headers=headers)
 
     @staticmethod
-    def _send_conform_account_email(activate_token: str, user_draft: UserDraft):
+    def _send_conform_account_email(activate_token: str, verification_code: str, user_draft: UserDraft):
         confirm_email_content = settings.ACCOUNT_CONFIRM_EMAIL_CONTENT.format(
             first_name=user_draft.first_name,
             activate_token=activate_token,
-            verification_code=user_draft.user_profile.verification_code,
+            verification_code=verification_code,
         )
         send_mail(
             settings.ACCOUNT_CONFIRM_EMAIL_SUBJECT,
@@ -141,7 +141,7 @@ class ClientPasswordLogin(GenericViewSet, UpdateModelMixin):
         return Response(status=HTTP_200_OK)
 
 
-class PerformAccountConfirmationViews(GenericViewSet, UpdateModelMixin, RetrieveModelMixin):
+class PerformAccountConfirmationViews(GenericViewSet, RetrieveModelMixin):
     serializer_class = Serializer
     permission_classes = ()
 
@@ -149,24 +149,40 @@ class PerformAccountConfirmationViews(GenericViewSet, UpdateModelMixin, Retrieve
         serializer = PerformAccountConfirmationSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        _ = self._perform_account_confirmation(validated_data["verification_code"], validated_data["activate_token"])
-        next_page = request.query_params.get("next") or f"{helper.build_base_path(request)}/accounts/login"
+
+        try:
+            _ = self._perform_account_confirmation(
+                validated_data["verification_code"], validated_data["activate_token"]
+            )
+            next_page = request.query_params.get("next") or "/"
+        except ValueError as e:
+            next_page = helper.add_query_params_into_url(
+                original_url=request.query_params.get("error_page") or "/",
+                new_params={"error": str(e)},
+            )
+
         return HttpResponseRedirect(next_page)
 
     @staticmethod
-    def _perform_account_confirmation(verification_code: str, activate_token: str) -> Response:
+    def _perform_account_confirmation(verification_code: str, activate_token: str):
         try:
-            pk = helper.decode_jwt(activate_token)["sub"]
-            user_draft: UserDraft = UserDraft.objects.select_related("user_profile").get(
-                pk=pk, user_profile__verification_code=verification_code
-            )
-        except Exception as e:
-            logging.warning(str(e))
-            raise ValidationError({"activate_token": ["Invalid"]})
+            user_draft_pk = helper.base36_to_pk(verification_code)
+        except ValueError:
+            raise ValueError("Invalid activate_token or verification_code")
 
-        _microseconds = int(helper.generate_verification_code())
-        if 60 * 60 * 25 * 2 * 1000000 < _microseconds - int(user_draft.user_profile.verification_code):
-            raise ValidationError({"verification_code": ["Expired"]})
+        if not 0 < user_draft_pk < helper.MAX_PK_NUMBER:
+            raise ValueError("Invalid activate_token or verification_code")
+
+        try:
+            user_draft: UserDraft = UserDraft.objects.select_related("user_profile").get(pk=user_draft_pk)
+        except UserDraft.DoesNotExist:
+            logging.error(
+                f"Received invalid profile id `{verification_code}` encoded from user_draft id `{user_draft_pk}`"
+            )
+            raise ValueError("Invalid activate_token or verification_code")
+
+        if not default_token_generator.check_token(user_draft, activate_token):
+            raise AuthenticationFailed("Invalid or expired token")
 
         qs = User.objects.filter(username=user_draft.username)
         if not qs.exists():
@@ -182,10 +198,6 @@ class PerformAccountConfirmationViews(GenericViewSet, UpdateModelMixin, Retrieve
             profile.user = user
             user.save()
             profile.save()
-
-            return Response({"message": f"Your account {user.username} is activated now."}, status=HTTP_201_CREATED)
-
-        return Response({"message": f"Your account has been activated."}, status=HTTP_200_OK)
 
 
 def render_federal_signin_page(req: HttpRequest):

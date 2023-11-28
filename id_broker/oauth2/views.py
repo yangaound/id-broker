@@ -1,9 +1,9 @@
-import jwt
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
+from jose import jwt
 from requests_oauthlib import OAuth2Session
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.request import Request

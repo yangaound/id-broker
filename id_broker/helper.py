@@ -1,44 +1,59 @@
-import datetime
-import re
-import time
+import logging
+from datetime import datetime, timedelta
 from typing import Optional, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-import jwt
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.http.request import HttpRequest
+from django.utils.http import base36_to_int, int_to_base36
+from jose import ExpiredSignatureError, JWTError, jwt
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
 BUILTIN_USER_POOL = "builtin-user-pool"
-EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+_INIT_PK_NUMBER = 1 << 25
+MAX_PK_NUMBER = 1 << 63
 
 
-def generate_verification_code() -> str:
-    return str(int(time.time() * 1000000))
+def pk_to_base36(num: int) -> str:
+    num += _INIT_PK_NUMBER
+    return int_to_base36(num)
+
+
+def base36_to_pk(chars: str) -> int:
+    num = base36_to_int(chars)
+    num -= _INIT_PK_NUMBER
+    return num
 
 
 def generate_id_token(user: User) -> str:
-    utcnow = datetime.datetime.utcnow()
+    utcnow = datetime.utcnow()
 
     id_token_payload = {
-        "sub": user.pk,
+        "sub": str(user.pk),
         "id_provider_name": user.user_profile.id_provider,
         "iat": utcnow,
-        "exp": utcnow + datetime.timedelta(seconds=60 * 60 * 4),
+        "exp": utcnow + timedelta(seconds=settings.ID_TOKEN_VALIDITY),
     }
 
-    return encode_jwt(id_token_payload)
+    return _encode_jwt(id_token_payload)
 
 
-def encode_jwt(payload: dict) -> jwt:
+def _encode_jwt(payload: dict) -> jwt:
     return jwt.encode(payload, key=settings.SECRET_KEY, algorithm="HS512")
 
 
-def decode_jwt(activate_token: str) -> dict:
-    return jwt.decode(activate_token, key=settings.SECRET_KEY, algorithms="HS512")
+def _decode_jwt(activate_token: str) -> dict:
+    payload = jwt.decode(
+        activate_token,
+        settings.SECRET_KEY,
+        algorithms=["HS512"],
+        options={"verify_aud": False, "verify_signature": True},
+    )
+    return payload
 
 
 def build_base_path(_: Union[HttpRequest, Request]) -> str:
@@ -83,14 +98,15 @@ class IdTokenAuthentication(BaseAuthentication):
         if not token:
             return
 
-        id_token_payload = decode_jwt(token)
-        if id_token_payload["exp"] < datetime.datetime.utcnow().timestamp():
-            raise AuthenticationFailed("Token has expired")
-
         try:
-            user = User.objects.get(pk=id_token_payload["sub"])
-        except User.DoesNotExist:
-            raise AuthenticationFailed("User does not exist")
+            id_token_payload = _decode_jwt(token)
+        except ExpiredSignatureError:
+            raise AuthenticationFailed("Token has expired.")
+        except JWTError as e:
+            logging.error(f"Decode JWT `{token}` error with message `{e}`")
+            raise AuthenticationFailed("Token has expired or corrupted")
+
+        user = User.objects.select_related("user_profile").get(pk=id_token_payload["sub"])
 
         return user, None
 
