@@ -5,15 +5,16 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.http.response import HttpResponseRedirect
 from requests_oauthlib import OAuth2Session
-from rest_framework import mixins, viewsets
+from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.request import Request
 from rest_framework.serializers import Serializer
+from rest_framework.viewsets import GenericViewSet
 
 from id_broker import helper
 from id_broker.account.models import UserProfile
 
 
-class Oauth2Authentication(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+class Oauth2Authentication(GenericViewSet, RetrieveModelMixin):
     authentication_classes = ()
     permission_classes = ()
     serializer_class = Serializer
@@ -37,7 +38,7 @@ class Oauth2Authentication(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     retrieve.__doc__ = "Configured ID Providers: " + ", ".join(settings.OAUTH2.keys())
 
 
-class Oauth2Callback(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+class Oauth2Callback(GenericViewSet, RetrieveModelMixin):
     authentication_classes = ()
     permission_classes = ()
     serializer_class = Serializer
@@ -52,7 +53,7 @@ class Oauth2Callback(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         try:
             code = request.query_params.get("code")
             if not code:
-                raise RuntimeError("Please supply authorization_code.")
+                raise RuntimeError("Missing authorization_code.")
 
             oauth = OAuth2Session(conf["client_id"], redirect_uri=conf["redirect_uri"])
             idp_resp = oauth.fetch_token(
