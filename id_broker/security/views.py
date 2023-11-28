@@ -5,11 +5,14 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.middleware.csrf import get_token
-from rest_framework import mixins, permissions, viewsets
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, UpdateModelMixin
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
+from rest_framework.viewsets import GenericViewSet
 
 from id_broker import helper
 from id_broker.account.serializers import IdentitySerializer
@@ -17,7 +20,7 @@ from id_broker.account.serializers import IdentitySerializer
 from .serializers import ActivatePasswordResetSerializer, ChangePasswordSerializer, PerformPasswordResetSerializer
 
 
-class RetrieveCsrfTokenViews(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+class RetrieveCsrfTokenViews(GenericViewSet, RetrieveModelMixin):
     serializer_class = Serializer
     permission_classes = ()
 
@@ -28,7 +31,7 @@ class RetrieveCsrfTokenViews(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
         return res
 
 
-class RequestIDTokenViews(viewsets.GenericViewSet, mixins.CreateModelMixin):
+class RequestIDTokenViews(GenericViewSet, CreateModelMixin):
     serializer_class = IdentitySerializer
     permission_classes = ()
 
@@ -50,10 +53,11 @@ class RequestIDTokenViews(viewsets.GenericViewSet, mixins.CreateModelMixin):
         return Response({"id_token": id_token})
 
 
-class ChangePasswordViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
+class ChangePasswordViews(GenericViewSet, UpdateModelMixin):
     serializer_class = ChangePasswordSerializer
     queryset = User.objects.select_related("user_profile").all()
-    permission_classes = (permissions.IsAuthenticated,)
+    authentication_classes = (helper.IdTokenAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
     def partial_update(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -71,7 +75,7 @@ class ChangePasswordViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
         return Response(status=200)
 
 
-class ActivatePasswordResetViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
+class ActivatePasswordResetViews(GenericViewSet, UpdateModelMixin):
     serializer_class = ActivatePasswordResetSerializer
     queryset = User.objects.select_related("user_profile").all()
     permission_classes = ()
@@ -112,7 +116,7 @@ class ActivatePasswordResetViews(viewsets.GenericViewSet, mixins.UpdateModelMixi
         return Response({"message": "Password reset processing is activated now. Please check your email."})
 
 
-class PerformPasswordResetViews(viewsets.GenericViewSet, mixins.UpdateModelMixin):
+class PerformPasswordResetViews(GenericViewSet, UpdateModelMixin):
     serializer_class = PerformPasswordResetSerializer
     queryset = User.objects.select_related("user_profile").all()
     permission_classes = ()

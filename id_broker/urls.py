@@ -13,6 +13,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
+
 from django.contrib import admin
 from django.urls import include, path
 from drf_yasg import openapi
@@ -26,13 +28,14 @@ schema_view = get_schema_view(
     openapi.Info(
         title="ID Broker",
         default_version="v1",
-        description="""Identity and Group Management Service that supports SSO through OAuth2 idP, such as 
-                    `Google`, `Microsoft`, and `Line`.""",
+        description="""Identity and group management service. It also supports SSO through 
+                       OAuth2 idP (Google, Microsoft, Line).""",
         contact=openapi.Contact(email="fofx@outlook.com"),
         license=openapi.License(name="MIT License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[permissions.AllowAny],
+    url=os.environ.get("BASE_URL"),
 )
 
 

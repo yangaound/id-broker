@@ -1,6 +1,6 @@
 # Identity Broker 
 
-Identity and Group Management project that supports Single Sign On through OAuth2 ID providers,
+Identity and Group Management project. It also supports Single Sign On through OAuth2 ID providers,
 such as `Google`, `Microsoft`, and `Line`.
 
 ---
@@ -140,7 +140,7 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Modify Personal Info </summary>
 
   ```bash
-  curl -skX PATCH "${BaseURL}/accounts/update-user-info" \
+  curl -sX PATCH "${BaseURL}/accounts/update-user-info" \
   -H "Content-Type: application/json" \
   -H "X-CSRFTOKEN: $CSRFToken" \
   -b "csrftoken=$CSRFToken" \
@@ -175,7 +175,7 @@ such as `Google`, `Microsoft`, and `Line`.
 <details><summary> Change Password </summary>
 
   ```bash
-  curl -skX PATCH "${BaseURL}/security/change-password" \
+  curl -sX PATCH "${BaseURL}/security/change-password" \
   -H "Content-Type: application/json" \
   -H "X-CSRFTOKEN: $CSRFToken" \
   -b "csrftoken=$CSRFToken" \
