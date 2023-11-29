@@ -132,10 +132,10 @@ class PerformPasswordResetViews(GenericViewSet, UpdateModelMixin):
         try:
             user_pk = helper.base36_to_pk(verification_code)
         except ValueError:
-            raise ValueError("Invalid activate_token or verification_code")
+            raise AuthenticationFailed("Invalid reset_token or verification_code")
 
         if not 0 < user_pk < helper.MAX_PK_NUMBER:
-            raise ValueError("Invalid activate_token or verification_code")
+            raise AuthenticationFailed("Invalid reset_token or verification_code")
 
         try:
             user: User = User.objects.select_related("user_profile").get(pk=user_pk)

@@ -54,18 +54,15 @@ class IDRegister(GenericViewSet, CreateModelMixin):
         ):
             raise ValidationError({"email": ["This email was registered; please use forgot password to reset it."]})
 
-        user_draft = UserDraft(**validated_data)
-        user_draft.username = validated_data["email"]
-        user_draft.set_password(validated_data["password"])
-        user_draft.save()
-
         user_profile = UserProfile(
             id_provider=helper.BUILTIN_USER_POOL,
-            preferred_name="{first_name} {last_name}".format(**validated_data),
+            preferred_name="{first_name} {last_name}".format(**validated_data).strip(),
         )
-        user_draft.user_profile = user_profile
-
         user_profile.save()
+
+        user_draft = UserDraft(user_profile=user_profile, **validated_data)
+        user_draft.username = validated_data["email"]
+        user_draft.set_password(validated_data["password"])
         user_draft.save()
 
         activate_token = default_token_generator.make_token(user_draft)
